@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Air Canvas Web App</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container text-center">
+      <h1>Air Canvas Web App</h1>
+      <a href="air-canvas">
+        <form action="/start_canvas" method="POST" target="_blank">
+          <button type="submit" class="submit">Start Air Canvas</button>
+        </form>
+      </a>
+      <h2>Upload Image</h2>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" />
+        <button type="button" onclick="uploadFile()">Upload</button>
+      </form>
+      <input
+        type="text"
+        id="textBox"
+        name="textBox"
+        placeholder="Text will appear here"
+      />
+      <button type="submit" id="submit">Search</button>
+      <button onclick="fetchText()">Load Text</button>
+      <div id="songsList"></div>
+    </div>
+    <script src="{{ url_for('static', filename='js/exscript.js') }}"></script>
+    <script>
+      async function fetchExtractedText() {
+        const response = await fetch("/extracted_text.txt");
+        const text = await response.text();
+        document.getElementById("extracted-text").innerText = text;
+      }
+      fetchExtractedText();
+    </script>
+    <script>
+      function fetchText() {
+        fetch("/get_text")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.text) {
+              document.getElementById("textBox").value = data.text; // Update text box
+            } else {
+              document.getElementById("textBox").value = "No text available";
+            }
+          })
+          .catch((error) => console.error("Error fetching text:", error));
+      }
+
+      function sendExtractedText() {
+        let extractedText = "This is dynamically updated text!"; // Replace with actual extracted text
+
+        fetch("/save_text", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: extractedText }),
+        })
+          .then((response) => response.json())
+          .then((data) => console.log("Response:", data))
+          .catch((error) => console.error("Error:", error));
+      }
+
+      function uploadFile() {
+        const formData = new FormData(document.getElementById("uploadForm"));
+        fetch("/upload_image", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message) {
+              alert(data.message);
+              fetchText(); // Fetch the extracted text after upload
+            }
+          })
+          .catch((error) => console.error("Error uploading file:", error));
+      }
+
+      // Automatically fetch text when the page loads
+      window.onload = fetchText;
+    </script>
+  </body>
+</html>
